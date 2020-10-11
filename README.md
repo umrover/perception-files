@@ -1,2 +1,2 @@
-# perception_dev
-Repository that houses Perception dev environment bash script and test files
+# perception
+Repository that houses Perception photos dev environment bash script and test files
