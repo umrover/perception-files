@@ -48,6 +48,8 @@ question="Setup Workspace? (Y/N): "
 ask_question
 setupWorkspace=$input
 
+read -p "Please enter path to mrover-workspace (doesn't include 'mrover-workspace'):" workspace
+
 question="OpenCV? (Y/N): ";
 ask_question
 openCV=$input
@@ -145,23 +147,27 @@ fi
 if [ $setupWorkspace == 'y' ] || [ $setupWorkspace == 'Y' ] 
 then
 
-echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Cloning and Setting Up Workspace"
+echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!Setting Up Workspace"
 cd ~
 apt-get install -y git
 
+command="cd $workspace"
+stop_if_fail
+command="cd mrover-workspace"
 stop_if_fail
 
-cd mrover-workspace
 apt-get update
 apt-get -y upgrade
 apt-get install -y build-essential software-properties-common apt-transport-https git wget
 apt-add-repository ppa:ansible/ansible
 apt-get update
 apt-get install -y ansible
-echo yes
-cd ansible
-ansible-playbook -i "localhost," -c local devbox.yml
 
+command="cd ansible"
+stop_if_fail
+command="ansible-playbook -i "localhost," -c local devbox.yml"
+stop_if_fail
+echo "Workspace all set!"
 fi
 
 if [ $zedSDK == 'y' ] || [ $zedSDK == 'Y' ]
@@ -173,7 +179,6 @@ apt-get update -y
 wget -O ZED_SDK_Linux_Ubuntu18.run https://download.stereolabs.com/zedsdk/3.2/cu100/ubuntu18
 chmod +x ZED_SDK_Linux_Ubuntu18.run ; ./ZED_SDK_Linux_Ubuntu18.run silent
 rm ZED_SDK_Linux_Ubuntu18.run
-
 fi
 
 
