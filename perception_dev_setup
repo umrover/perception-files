@@ -48,7 +48,10 @@ question="Setup Workspace? (Y/N): "
 ask_question
 setupWorkspace=$input
 
+if [ $setupWorkspace == 'y' ] || [ $setupWorkspace == 'Y' ] ;
+then
 read -p "Please enter path to mrover-workspace (doesn't include 'mrover-workspace'):" workspace
+fi
 
 question="OpenCV? (Y/N): ";
 ask_question
@@ -58,7 +61,7 @@ question="CUDA? (Y/N): ";
 ask_question
 CUDA=$input
 
-if [ $CUDA == 'y' ] || [ $CUDA == 'Y' ] 
+if [ $CUDA == 'y' ] || [ $CUDA == 'Y' ] ;
 then
     question="ZedSDK? (Y/N): ";
     ask_question
@@ -69,12 +72,25 @@ question="PCL? (Y/N): ";
 ask_question
 PCL=$input
 
+if [[ $PCL == 'y' || $PCL == 'Y' ]] && [[ $CUDA == 'y' || $CUDA == 'Y' ]] ;
+then
+question="PCL GPU Configuration? (Y/N): ";
+ask_question
+PCL_GPU=$input
+fi
+
+
 if [ $CUDA == 'y' ] || [ $CUDA == 'Y' ] 
 then 
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!INSTALLING CUDA"
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!DOWNLOADING 1.6GB FILE"
-wget https://developer.nvidia.com/compute/cuda/10.0/Prod/local_installers/cuda_10.0.130_410.48_linux 
-cuda_10.0.130_410.48_linux.run
+curl https://developer.download.nvidia.com/compute/cuda/10.0/secure/Prod/local_installers/cuda-repo-ubuntu1804-10-0-local-10.0.130-410.48_1.0-1_amd64.deb?bjFmFVPAt7vHlOW4B0O2eRBa7Wy5yBx0KWnilLEVrNP9DlsgK4E1JlAik7mpEgNACP5GeTmujeK8eb29D-DSqhEGvIAhk9n8yMJh7CXOnJUbQDnswOzRKjDwebQxg9LuYt_AEfrmI6hYo_6JQBtRT00oDGmD68E3nFD_JxtwE7lfoKiAEhoklCQVDBno6LayK5tzDLNR-F2WbzDC1YpMM2WXeIvgjfNi4veSD1g --output cuda-repo-ubuntu1804-10-0-local-10.0.130-410.48_1.0-1_amd64.deb
+command="dpkg -i cuda-repo-ubuntu1804-10-0-local-10.0.130-410.48_1.0-1_amd64.deb"
+stop_if_fail
+apt-key add /var/cuda-repo-10-0-local-10.0.130-410.48/7fa2af80.pub
+apt-get update -y
+apt-get install -y cuda-10-0
+rm cuda-repo-ubuntu1804-10-0-local-10.0.130-410.48_1.0-1_amd64.deb
 fi
 
 if [ $openCV == 'y' ] || [ $openCV == 'Y' ] 
@@ -112,7 +128,22 @@ then
 
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!INSTALLING VTK"
 apt-get install -y libboost-all-dev curl cmake libxt-dev 
-apt-get install -y --no-install-recommends cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev python3.6-dev python3-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff5-dev jasper libdc1394-22-dev libeigen3-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev sphinx-common libtbb-dev yasm libfaac-dev libopencore-amrnb-dev libopencore-amrwb-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libavutil-dev libavfilter-dev libavresample-dev libvtk6-dev libvtk6-java
+apt-get install -y --no-install-recommends cmake git libgtk2.0-dev pkg-config libavcodec-dev libavformat-dev libswscale-dev python3.6-dev python3-numpy libtbb2 libtbb-dev libjpeg-dev libpng-dev libtiff5-dev jasper libdc1394-22-dev libeigen3-dev libtheora-dev libvorbis-dev libxvidcore-dev libx264-dev sphinx-common libtbb-dev yasm libfaac-dev libopencore-amrnb-dev libopencore-amrwb-dev libopenexr-dev libgstreamer-plugins-base1.0-dev libavutil-dev libavfilter-dev libavresample-dev 
+
+if [ $PCL_GPU == 'y' ] || [ $PCL_GPU == 'Y' ] ;
+then 
+    curl https://vtk.org/files/release/8.2/VTK-8.2.0.tar.gz --output VTK-8.2.0.tar.gz
+    command="tar -xvzf VTK-8.2.0.tar.gz"
+    stop_if_fail
+    mv VTK-8.2.0 /usr/local
+    cd /usr/local/VTK-8.2.0/
+    mkdir VTK-Release-build
+    cd VTK-Release-build/
+    cmake -DCMAKE_BUILD_TYPE:STRING=Release /usr/local/VTK-8.2.0/ -DVTK_USE_SYSTEM_PNG=ON
+    make -j1 install
+else 
+    apt-get install -y libvtk6-dev libvtk6-java
+fi
 
 
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!INSTALLING EIGEN"
@@ -132,8 +163,16 @@ tar -xvzf pcl-pcl-1.11.1.tar.gz
 rm pcl-pcl-1.11.1.tar.gz
 cd pcl-pcl-1.11.1
 sudo mkdir build && cd build
-command="cmake -DCMAKE_BUILD_TYPE=Release .."
-stop_if_fail
+
+if [ $PCL_GPU == 'y' ] || [ $PCL_GPU == 'Y' ] ;
+then 
+    command="cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_CUDA=ON -DBUILD_GPU=ON -DBUILD_apps=ON -DBUILD_global_tests=ON -DBUILD_outofcore=on -DBUILD_people=ON -DBUILD_visualization=ON -DBUILD_cuda_io=ON .."
+    stop_if_fail
+else
+    command="cmake -DCMAKE_BUILD_TYPE=Release .."
+    stop_if_fail
+fi
+
 echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!BUILDING BE PATIENT. CLOSE ALL OPEN APPLICATIONS!!!!!!"
 command="make -j1"
 stop_if_fail
@@ -177,7 +216,9 @@ echo "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!INSTALLING ZED SDK"
 apt-get install --no-install-recommends lsb-release wget less udev sudo apt-transport-https -y
 apt-get update -y
 wget -O ZED_SDK_Linux_Ubuntu18.run https://download.stereolabs.com/zedsdk/3.2/cu100/ubuntu18
-chmod +x ZED_SDK_Linux_Ubuntu18.run ; ./ZED_SDK_Linux_Ubuntu18.run silent
+command="chmod +x ZED_SDK_Linux_Ubuntu18.run"
+stop_if_fail
+./ZED_SDK_Linux_Ubuntu18.run silent
 rm ZED_SDK_Linux_Ubuntu18.run
 fi
 
